@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Polarity</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--good:#3ddc97;--bad:#ff6b6b}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center;max-width:350px}
+  .hud{display:flex;gap:12px;margin-bottom:10px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  canvas{background:#0f1730;border-radius:18px;border:1px solid #ffffff10;touch-action:manipulation}
+  .row{display:flex;gap:10px;margin-top:12px;align-items:center}
+  .tool{padding:9px 16px;border-radius:12px;font-weight:800;border:2px solid transparent}
+  .tool.sel{border-color:#fff}
+  .plus{background:#ff6b6b33;color:#ff8a8a}.minus{background:#5b8cff33;color:#9fc0ff}
+  .btn{background:var(--good);color:#04120b;border:none;padding:10px 20px;border-radius:12px;font-weight:800}
+  .btn.ghost{background:#ffffff12;color:var(--txt)}
+  .msg{margin-top:10px;font-weight:700;height:22px}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>⚡ Polarity</h1>
+<div class="sub">Mıknatıs yerleştir: + topu iter, − çeker. Sonra OYNAT'a bas — topu 🎯 hedefe yönlendir, engellere çarptırma.</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Mıknatıs</small><span id="mag">0/3</span></div>
+</div>
+<canvas id="cv" width="320" height="320"></canvas>
+<div class="row">
+  <div class="tool plus sel" id="tp" onclick="sel('+')">+ İt</div>
+  <div class="tool minus" id="tm" onclick="sel('-')">− Çek</div>
+  <button class="btn ghost" onclick="build()">↺</button>
+  <button class="btn" onclick="play()">▶ Oynat</button>
+</div>
+<div class="msg" id="msg"></div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let ball,goal,walls,mags,tool='+',level=1,anim=null;
+function build(){
+  if(anim)cancelAnimationFrame(anim);anim=null;
+  ball={x:40,y:160,vx:0,vy:0,r:10};
+  goal={x:280,y:160,r:18};
+  walls=[];const nw=Math.min(level,4);
+  for(let i=0;i<nw;i++)walls.push({x:120+Math.random()*80,y:40+Math.random()*240,r:16+Math.random()*10});
+  mags=[];sel('+');document.getElementById('lvl').textContent=level;document.getElementById('msg').textContent='';
+  updateMag();draw();
+}
+function sel(t){tool=t;document.getElementById('tp').classList.toggle('sel',t==='+');
+  document.getElementById('tm').classList.toggle('sel',t==='-');}
+function updateMag(){document.getElementById('mag').textContent=mags.length+'/3';}
+function draw(){
+  ctx.clearRect(0,0,320,320);
+  walls.forEach(w=>{ctx.fillStyle='#2a3556';ctx.beginPath();ctx.arc(w.x,w.y,w.r,0,6.3);ctx.fill();
+    ctx.strokeStyle='#445';ctx.lineWidth=2;ctx.stroke();});
+  mags.forEach(m=>{ctx.beginPath();ctx.arc(m.x,m.y,16,0,6.3);
+    ctx.fillStyle=m.p==='+'?'#ff6b6b':'#5b8cff';ctx.globalAlpha=.85;ctx.fill();ctx.globalAlpha=1;
+    ctx.fillStyle='#fff';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(m.p,m.x,m.y);});
+  // goal
+  ctx.strokeStyle='#3ddc97';ctx.lineWidth=3;ctx.beginPath();ctx.arc(goal.x,goal.y,goal.r,0,6.3);ctx.stroke();
+  ctx.font='20px serif';ctx.fillText('🎯',goal.x,goal.y+1);
+  // ball
+  ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,6.3);ctx.fillStyle='#ffcc5c';ctx.fill();
+  ctx.shadowColor='#ffcc5c';ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
+}
+function play(){
+  if(anim)return;
+  ball={x:40,y:160,vx:1.2,vy:0,r:10};
+  const step=()=>{
+    mags.forEach(m=>{const dx=m.x-ball.x,dy=m.y-ball.y,d2=dx*dx+dy*dy,d=Math.sqrt(d2)||1;
+      const F=1400/(d2+200)*(m.p==='-'?1:-1);ball.vx+=F*dx/d;ball.vy+=F*dy/d;});
+    ball.vx*=0.985;ball.vy*=0.985;ball.x+=ball.vx;ball.y+=ball.vy;
+    if(ball.x<10||ball.x>310)ball.vx*=-0.6,ball.x=Math.max(10,Math.min(310,ball.x));
+    if(ball.y<10||ball.y>310)ball.vy*=-0.6,ball.y=Math.max(10,Math.min(310,ball.y));
+    let dead=false;
+    walls.forEach(w=>{if(Math.hypot(w.x-ball.x,w.y-ball.y)<w.r+ball.r)dead=true;});
+    draw();
+    if(Math.hypot(goal.x-ball.x,goal.y-ball.y)<goal.r){anim=null;
+      document.getElementById('msg').textContent='✅ Hedefe ulaştı!';document.getElementById('msg').style.color='var(--good)';
+      level++;setTimeout(build,1200);return;}
+    if(dead){anim=null;document.getElementById('msg').textContent='💥 Engele çarptı, tekrar dene';
+      document.getElementById('msg').style.color='var(--bad)';setTimeout(()=>{ball.x=40;ball.y=160;ball.vx=ball.vy=0;draw();document.getElementById('msg').textContent='';},900);return;}
+    anim=requestAnimationFrame(step);
+  };
+  anim=requestAnimationFrame(step);
+}
+cv.addEventListener('click',e=>{if(anim)return;const r=cv.getBoundingClientRect();
+  if(mags.length>=3){document.getElementById('msg').textContent='Max 3 mıknatıs — birine bas kaldır';return;}
+  mags.push({x:e.clientX-r.left,y:e.clientY-r.top,p:tool});updateMag();draw();});
+cv.addEventListener('contextmenu',e=>{e.preventDefault();const r=cv.getBoundingClientRect();
+  const x=e.clientX-r.left,y=e.clientY-r.top;mags=mags.filter(m=>Math.hypot(m.x-x,m.y-y)>18);updateMag();draw();});
+build();
+</script>
+</body></html>

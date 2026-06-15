@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Arrow Flow</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--acc2:#22d3ee;--good:#3ddc97}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center;max-width:340px}
+  .hud{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  #board{display:grid;gap:8px;background:#0f1730;padding:12px;border-radius:18px;border:1px solid #ffffff10;touch-action:manipulation}
+  .cell{width:54px;height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:24px;font-weight:800;transition:transform .12s,opacity .25s;cursor:pointer}
+  .cell.empty{background:#ffffff08}
+  .a{background:linear-gradient(160deg,var(--acc),#3a6ad8);box-shadow:0 4px 14px #5b8cff44;color:#fff}
+  .a:active{transform:scale(.9)}
+  .gone{opacity:0;transform:scale(.3)}
+  .msg{margin-top:14px;font-weight:700;font-size:15px;height:22px}
+  .btn{margin-top:10px;background:var(--acc);color:#fff;border:none;padding:11px 22px;border-radius:12px;
+    font-weight:700;font-size:15px}
+  .hearts{font-size:18px;letter-spacing:2px}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>➡️ Arrow Flow</h1>
+<div class="sub">Bir oka dokun: gösterdiği yönde uçar, yoldaki okları tahtadan dışarı iter. Tüm okları temizle.</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Can</small><span class="hearts" id="hearts">❤️❤️❤️</span></div>
+  <div class="stat"><small>Kalan</small><span id="left">0</span></div>
+</div>
+<div id="board"></div>
+<div class="msg" id="msg"></div>
+<button class="btn" id="btn" onclick="newLevel()">Yeni Bulmaca</button>
+<script>
+const DIRS={'↑':[-1,0],'↓':[1,0],'←':[0,-1],'→':[0,1]};
+const ARROWS=Object.keys(DIRS);
+let N=5,grid=[],level=1,lives=3,moves=0;
+const boardEl=document.getElementById('board');
+function newLevel(){
+  N=Math.min(5+Math.floor(level/3),7);
+  boardEl.style.gridTemplateColumns=`repeat(${N},54px)`;
+  grid=[];
+  // fill ~55% with arrows
+  for(let r=0;r<N;r++){grid[r]=[];for(let c=0;c<N;c++){
+    grid[r][c]=Math.random()<0.55?ARROWS[Math.random()*4|0]:null;}}
+  moves=0;render();status();
+}
+function render(){
+  boardEl.innerHTML='';
+  let count=0;
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const v=grid[r][c];const d=document.createElement('div');
+    d.className='cell '+(v?'a':'empty');d.textContent=v||'';
+    if(v){count++;d.onclick=()=>fire(r,c);}
+    boardEl.appendChild(d);
+  }
+  document.getElementById('left').textContent=count;
+  if(count===0)win();
+}
+function fire(r,c){
+  const dir=DIRS[grid[r][c]];grid[r][c]=null;
+  let rr=r+dir[0],cc=c+dir[1];
+  // push: remove first arrow encountered in path until it flies off board
+  while(rr>=0&&rr<N&&cc>=0&&cc<N){
+    if(grid[rr][cc]){ // chain reaction: this arrow also flies its own way is too complex; simple: it's pushed off
+      grid[rr][cc]=null;
+    }
+    rr+=dir[0];cc+=dir[1];
+  }
+  moves++;animate();
+}
+function animate(){render();}
+function status(){
+  document.getElementById('lvl').textContent=level;
+  document.getElementById('hearts').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives);
+}
+function win(){
+  document.getElementById('msg').textContent=`✅ Temizlendi! ${moves} hamle`;
+  document.getElementById('msg').style.color='var(--good)';
+  level++;setTimeout(()=>{document.getElementById('msg').textContent='';newLevel();},1100);
+}
+newLevel();
+</script>
+</body></html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Hue Sort</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--good:#3ddc97}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center;max-width:340px}
+  .hud{display:flex;gap:12px;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  #tubes{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:360px}
+  .tube{width:46px;height:160px;border:3px solid #ffffff22;border-top:none;border-radius:0 0 22px 22px;
+    display:flex;flex-direction:column-reverse;padding:4px;gap:4px;background:#ffffff06;transition:transform .12s}
+  .tube.sel{transform:translateY(-12px);border-color:var(--acc)}
+  .liq{height:34px;border-radius:6px;box-shadow:inset 0 -3px 0 #0003}
+  .msg{margin-top:14px;font-weight:700;height:22px}
+  .btn{margin-top:8px;background:#ffffff12;color:var(--txt);border:none;padding:10px 18px;border-radius:12px;font-weight:700}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>🧪 Hue Sort</h1>
+<div class="sub">Bir tüpe dokun (al), sonra başka tüpe dokun (dök). Aynı renk üste denk gelirse akar. Her tüp tek renk olunca biter.</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Hamle</small><span id="mv">0</span></div>
+</div>
+<div id="tubes"></div>
+<div class="msg" id="msg"></div>
+<button class="btn" onclick="build()">↺ Yeni</button>
+<script>
+const COLORS=['#5b8cff','#3ddc97','#ffcc5c','#ff6b6b','#c77dff','#22d3ee'];
+const CAP=4;let tubes=[],sel=-1,level=1,moves=0;
+function build(){
+  const nc=Math.min(3+Math.floor(level/2),6);
+  let pool=[];for(let i=0;i<nc;i++)for(let k=0;k<CAP;k++)pool.push(i);
+  // shuffle
+  for(let i=pool.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+  tubes=[];for(let i=0;i<nc;i++)tubes.push(pool.slice(i*CAP,i*CAP+CAP));
+  tubes.push([]);tubes.push([]); // 2 empty tubes
+  sel=-1;moves=0;document.getElementById('lvl').textContent=level;document.getElementById('msg').textContent='';
+  render();
+}
+function render(){
+  const t=document.getElementById('tubes');t.innerHTML='';
+  tubes.forEach((tb,i)=>{
+    const d=document.createElement('div');d.className='tube'+(i===sel?' sel':'');
+    tb.forEach(ci=>{const l=document.createElement('div');l.className='liq';l.style.background=COLORS[ci];d.appendChild(l);});
+    d.onclick=()=>tap(i);t.appendChild(d);
+  });
+  document.getElementById('mv').textContent=moves;
+  checkWin();
+}
+function top(tb){return tb.length?tb[tb.length-1]:-1;}
+function tap(i){
+  if(sel===-1){if(tubes[i].length)sel=i;render();return;}
+  if(sel===i){sel=-1;render();return;}
+  const from=tubes[sel],to=tubes[i];
+  if(to.length<CAP&&(to.length===0||top(to)===top(from))){
+    const c=top(from);let moved=false;
+    while(from.length&&top(from)===c&&to.length<CAP){to.push(from.pop());moved=true;}
+    if(moved)moves++;
+  }
+  sel=-1;render();
+}
+function checkWin(){
+  const ok=tubes.every(tb=>tb.length===0||(tb.length===CAP&&tb.every(c=>c===tb[0])));
+  if(ok){document.getElementById('msg').textContent='✅ Hepsi ayrıldı!';document.getElementById('msg').style.color='var(--good)';
+    if(!window._w){window._w=1;setTimeout(()=>{level++;window._w=0;build();},1200);}}
+}
+build();
+</script>
+</body></html>

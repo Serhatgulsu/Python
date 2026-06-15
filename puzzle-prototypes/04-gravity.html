@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Gravity Shift</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--good:#3ddc97}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center;max-width:340px}
+  .hud{display:flex;gap:12px;margin-bottom:10px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  #board{display:grid;gap:6px;background:#0f1730;padding:10px;border-radius:18px;border:1px solid #ffffff10}
+  .cell{width:50px;height:50px;border-radius:11px;background:#ffffff08;transition:all .18s cubic-bezier(.4,1.4,.5,1)}
+  .b{box-shadow:inset 0 -4px 0 #0003}
+  .pad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:6px;margin-top:14px}
+  .pad button{border:none;border-radius:12px;background:var(--card);color:var(--txt);font-size:22px;font-weight:800}
+  .pad button:active{background:var(--acc)}
+  .pad .sp{visibility:hidden}
+  .msg{margin-top:12px;font-weight:700;height:22px}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>🧲 Gravity Shift</h1>
+<div class="sub">Yerçekimi yönünü değiştir; tüm bloklar o yöne kayar. Aynı renkler birbirine değince yok olur. Tahtayı boşalt.</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Blok</small><span id="cnt">0</span></div>
+  <div class="stat"><small>Hamle</small><span id="mv">0</span></div>
+</div>
+<div id="board"></div>
+<div class="pad">
+  <button class="sp"></button><button onclick="shift('U')">↑</button><button class="sp"></button>
+  <button onclick="shift('L')">←</button><button class="sp"></button><button onclick="shift('R')">→</button>
+  <button class="sp"></button><button onclick="shift('D')">↓</button><button class="sp"></button>
+</div>
+<div class="msg" id="msg"></div>
+<script>
+const COLORS=['#5b8cff','#3ddc97','#ffcc5c','#ff6b6b','#c77dff'];
+let N=5,grid=[],level=1,moves=0;
+const boardEl=document.getElementById('board');
+function build(){
+  N=5;boardEl.style.gridTemplateColumns=`repeat(${N},50px)`;
+  grid=Array.from({length:N},()=>Array(N).fill(null));
+  // place pairs of colors so they can be cleared
+  const nc=Math.min(2+Math.floor(level/2),5);
+  const pairs=4+level;
+  for(let k=0;k<pairs;k++){
+    const col=COLORS[k%nc];
+    for(let t=0;t<2;t++){let r,c,tries=0;do{r=Math.random()*N|0;c=Math.random()*N|0;tries++}while(grid[r][c]&&tries<50);grid[r][c]=col;}
+  }
+  moves=0;render();document.getElementById('lvl').textContent=level;document.getElementById('msg').textContent='';
+}
+function render(){
+  boardEl.innerHTML='';let cnt=0;
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const d=document.createElement('div');d.className='cell'+(grid[r][c]?' b':'');
+    if(grid[r][c]){d.style.background=grid[r][c];cnt++;}
+    boardEl.appendChild(d);
+  }
+  document.getElementById('cnt').textContent=cnt;document.getElementById('mv').textContent=moves;
+  if(cnt===0)win();
+}
+function shift(dir){
+  moves++;
+  const line=(arr)=>{const f=arr.filter(Boolean);while(f.length<N)f.unshift(null);return f;};
+  if(dir==='U'){for(let c=0;c<N;c++){let col=[];for(let r=0;r<N;r++)col.push(grid[r][c]);
+    col=col.filter(Boolean);while(col.length<N)col.push(null);for(let r=0;r<N;r++)grid[r][c]=col[r];}}
+  if(dir==='D'){for(let c=0;c<N;c++){let col=[];for(let r=0;r<N;r++)col.push(grid[r][c]);
+    col=col.filter(Boolean);while(col.length<N)col.unshift(null);for(let r=0;r<N;r++)grid[r][c]=col[r];}}
+  if(dir==='L'){for(let r=0;r<N;r++){let row=grid[r].filter(Boolean);while(row.length<N)row.push(null);grid[r]=row;}}
+  if(dir==='R'){for(let r=0;r<N;r++){let row=grid[r].filter(Boolean);while(row.length<N)row.unshift(null);grid[r]=row;}}
+  clearMatches();render();
+}
+function clearMatches(){
+  // remove adjacent same-color groups of size>=2
+  let changed=true;
+  while(changed){changed=false;
+    const seen=Array.from({length:N},()=>Array(N).fill(false));
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      if(!grid[r][c]||seen[r][c])continue;
+      const col=grid[r][c],stack=[[r,c]],group=[];seen[r][c]=true;
+      while(stack.length){const [y,x]=stack.pop();group.push([y,x]);
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dy,dx])=>{const ny=y+dy,nx=x+dx;
+          if(ny>=0&&ny<N&&nx>=0&&nx<N&&!seen[ny][nx]&&grid[ny][nx]===col){seen[ny][nx]=true;stack.push([ny,nx]);}});}
+      if(group.length>=2){group.forEach(([y,x])=>grid[y][x]=null);changed=true;}
+    }
+  }
+}
+function win(){document.getElementById('msg').textContent='✅ Temizlendi!';document.getElementById('msg').style.color='var(--good)';
+  level++;setTimeout(build,1100);}
+build();
+</script>
+</body></html>

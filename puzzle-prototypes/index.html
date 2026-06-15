@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Puzzle Lab — 10 Oyun Konsepti</title>
+<style>
+  :root{
+    --bg:#0b0f1a; --bg2:#121a2e; --card:#161f38; --card2:#1d2a4a;
+    --txt:#e8eefc; --muted:#8a98bd; --acc:#5b8cff; --acc2:#22d3ee;
+    --good:#3ddc97; --warn:#ffcc5c; --bad:#ff6b6b;
+    --r:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1200px 800px at 50% -10%,#16213e 0,var(--bg) 60%);
+    color:var(--txt);min-height:100vh;padding:24px 16px 60px}
+  header{max-width:760px;margin:0 auto 22px;text-align:center}
+  .logo{font-size:13px;letter-spacing:3px;color:var(--acc2);text-transform:uppercase;font-weight:700}
+  h1{font-size:30px;margin:6px 0 8px;font-weight:800;letter-spacing:-.5px}
+  .sub{color:var(--muted);font-size:15px;line-height:1.5;max-width:520px;margin:0 auto}
+  .biz{max-width:760px;margin:18px auto 26px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .chip{background:var(--card);border:1px solid #ffffff14;color:var(--txt);
+    padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:600}
+  .chip b{color:var(--acc2)}
+  .grid{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+  a.card{display:block;text-decoration:none;color:inherit;background:linear-gradient(160deg,var(--card),var(--bg2));
+    border:1px solid #ffffff12;border-radius:var(--r);padding:18px;position:relative;overflow:hidden;
+    transition:transform .15s ease,border-color .15s ease}
+  a.card:active{transform:scale(.98)}
+  a.card:hover{border-color:#ffffff33}
+  .num{position:absolute;top:12px;right:14px;font-size:34px;font-weight:800;color:#ffffff10}
+  .emoji{font-size:30px}
+  .ttl{font-size:18px;font-weight:800;margin:8px 0 4px}
+  .desc{color:var(--muted);font-size:13px;line-height:1.45;min-height:54px}
+  .tags{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:4px 8px;border-radius:6px;
+    background:#ffffff0d;color:var(--muted);text-transform:uppercase}
+  .tag.new{background:#3ddc9722;color:var(--good)}
+  .tag.hot{background:#ff6b6b22;color:var(--bad)}
+  footer{max-width:760px;margin:36px auto 0;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Puzzle Lab</div>
+  <h1>10 Oyun Konsepti</h1>
+  <p class="sub">Her kart oynanabilir bir prototip. Mekaniği telefonda dene, beğendiklerini seç — sonra onu 5000 level'lık tam oyuna çeviririz.</p>
+</header>
+
+<div class="biz">
+  <div class="chip">🎯 <b>5000</b> level</div>
+  <div class="chip">📈 Kolaydan zora</div>
+  <div class="chip">❤️ <b>3 can</b> → bitince ödüllü reklam</div>
+  <div class="chip">💰 Reklam gelir modeli</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>
+  Tasarım: oynanabilir konsept turu • Telefonda en iyi deneyim için her oyunu tam ekran aç.<br>
+  Beğendiğin 1–3 konsepti söyle, onları derinleştirelim.
+</footer>
+
+<script>
+const games = [
+  {f:"01-arrowflow.html", e:"➡️", t:"Arrow Flow", d:"Okları ateşle, yoldaki blokları ittir ve tahtayı temizle. Referans 'arrow' oyununun modern hali.", tags:[["hot","Referansa yakın"]]},
+  {f:"02-chroma.html", e:"🎨", t:"Chroma Mix", d:"Renk damlalarını karıştır, hedef rengi tam tuttur. Renk teorisi temelli, çok az yapılmış.", tags:[["new","Özgün"]]},
+  {f:"03-untangle.html", e:"🪢", t:"Untangle", d:"Düğümlenmiş çizgileri çöz; hiçbir çizgi kesişmesin. Sakin, tatmin edici.", tags:[["","Klasik+"]]},
+  {f:"04-gravity.html", e:"🧲", t:"Gravity Shift", d:"Yerçekimini döndür, bloklar kayar; aynı renkleri birleştir. Mekanik bükümlü.", tags:[["new","Özgün"]]},
+  {f:"05-onestroke.html", e:"✏️", t:"One Stroke", d:"Parmağını kaldırmadan tüm kenarlardan geç. Tek çizgi bulmaca, nefis akış.", tags:[["","Klasik+"]]},
+  {f:"06-laser.html", e:"🔦", t:"Laser Bend", d:"Aynaları döndür, lazeri hedefe yönlendir. Görsel ve zekice.", tags:[["hot","Sevilen tür"]]},
+  {f:"07-loop.html", e:"🔵", t:"Loop Pipes", d:"Karoları çevir, kapalı bir su döngüsü oluştur. Zen, sonsuz seviye üretir.", tags:[["","Klasik+"]]},
+  {f:"08-polarity.html", e:"⚡", t:"Polarity", d:"Mıknatıs kutupları yerleştir, topu hedefe çek. Fizik tabanlı, yeni.", tags:[["new","Özgün"]]},
+  {f:"09-huesort.html", e:"🧪", t:"Hue Sort", d:"Renkli sıvıları tüpler arası ayır. Bağımlılık yapan, viral tür.", tags:[["hot","Viral"]]},
+  {f:"10-shift.html", e:"🟦", t:"Tile Shift", d:"Satır/sütun kaydır, deseni hedefe eşle. 2048 sezgisi + yeni dokunuş.", tags:[["new","Özgün"]]},
+];
+const g = document.getElementById('grid');
+games.forEach((x,i)=>{
+  const a=document.createElement('a');a.href=x.f;a.className='card';
+  a.innerHTML=`<div class="num">${String(i+1).padStart(2,'0')}</div>
+    <div class="emoji">${x.e}</div>
+    <div class="ttl">${x.t}</div>
+    <div class="desc">${x.d}</div>
+    <div class="tags">${x.tags.map(t=>`<span class="tag ${t[0]}">${t[1]}</span>`).join('')}</div>`;
+  g.appendChild(a);
+});
+</script>
+</body>
+</html>

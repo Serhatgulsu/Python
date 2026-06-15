@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Untangle</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--good:#3ddc97;--bad:#ff6b6b}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center;max-width:340px}
+  .hud{display:flex;gap:12px;margin-bottom:10px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  canvas{background:#0f1730;border-radius:18px;border:1px solid #ffffff10;touch-action:none}
+  .msg{margin-top:12px;font-weight:700;height:22px}
+  .btn{margin-top:8px;background:#ffffff12;color:var(--txt);border:none;padding:10px 18px;border-radius:12px;font-weight:700}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>🪢 Untangle</h1>
+<div class="sub">Noktaları sürükle, hiçbir çizgi diğerini kesmesin. Tüm çizgiler beyaz olunca çözdün.</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Kesişen</small><span id="cross">0</span></div>
+</div>
+<canvas id="cv" width="340" height="380"></canvas>
+<div class="msg" id="msg"></div>
+<button class="btn" onclick="build()">↺ Karıştır</button>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let nodes=[],edges=[],drag=-1,level=1;
+function build(){
+  const n=Math.min(5+level,10);nodes=[];edges=[];
+  // place on circle (guaranteed solvable as convex polygon), then scramble positions
+  const cx=170,cy=190,R=130;
+  let order=[...Array(n).keys()];
+  for(let i=0;i<n;i++){nodes.push({x:60+Math.random()*220,y:60+Math.random()*260,tx:cx+R*Math.cos(i/n*6.283),ty:cy+R*Math.sin(i/n*6.283)});}
+  for(let i=0;i<n;i++)edges.push([i,(i+1)%n]);
+  // add a few chords for difficulty
+  const extra=Math.floor(level/2);
+  for(let k=0;k<extra;k++){let a=Math.random()*n|0,b=(a+2+(Math.random()*Math.max(1,n-3)|0))%n;
+    if(a!==b&&!edges.some(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)))edges.push([a,b]);}
+  document.getElementById('lvl').textContent=level;document.getElementById('msg').textContent='';
+  draw();
+}
+function ccw(A,B,C){return (C.y-A.y)*(B.x-A.x)>(B.y-A.y)*(C.x-A.x);}
+function inter(p1,p2,p3,p4){return ccw(p1,p3,p4)!==ccw(p2,p3,p4)&&ccw(p1,p2,p3)!==ccw(p1,p2,p4);}
+function crossings(){
+  let c=0,bad=new Set();
+  for(let i=0;i<edges.length;i++)for(let j=i+1;j<edges.length;j++){
+    const [a,b]=edges[i],[d,e]=edges[j];
+    if(a===d||a===e||b===d||b===e)continue;
+    if(inter(nodes[a],nodes[b],nodes[d],nodes[e])){c++;bad.add(i);bad.add(j);}
+  }
+  return {c,bad};
+}
+function draw(){
+  ctx.clearRect(0,0,340,380);
+  const {c,bad}=crossings();
+  edges.forEach((e,i)=>{
+    ctx.beginPath();ctx.moveTo(nodes[e[0]].x,nodes[e[0]].y);ctx.lineTo(nodes[e[1]].x,nodes[e[1]].y);
+    ctx.lineWidth=4;ctx.strokeStyle=bad.has(i)?'#ff6b6b':'#e8eefc';ctx.stroke();
+  });
+  nodes.forEach((nd,i)=>{
+    ctx.beginPath();ctx.arc(nd.x,nd.y,13,0,6.3);
+    ctx.fillStyle=i===drag?'#22d3ee':'#5b8cff';ctx.fill();
+    ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+  });
+  document.getElementById('cross').textContent=c;
+  if(c===0){document.getElementById('msg').textContent='✅ Çözüldü!';document.getElementById('msg').style.color='var(--good)';
+    if(!window._won){window._won=true;setTimeout(()=>{level++;window._won=false;build();},1100);}}
+}
+function pos(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return {x:t.clientX-r.left,y:t.clientY-r.top};}
+function down(e){const p=pos(e);drag=nodes.findIndex(n=>Math.hypot(n.x-p.x,n.y-p.y)<20);draw();}
+function move(e){if(drag<0)return;e.preventDefault();const p=pos(e);nodes[drag].x=Math.max(15,Math.min(325,p.x));nodes[drag].y=Math.max(15,Math.min(365,p.y));draw();}
+function up(){drag=-1;draw();}
+cv.addEventListener('mousedown',down);cv.addEventListener('mousemove',move);window.addEventListener('mouseup',up);
+cv.addEventListener('touchstart',down,{passive:false});cv.addEventListener('touchmove',move,{passive:false});cv.addEventListener('touchend',up);
+build();
+</script>
+</body></html>

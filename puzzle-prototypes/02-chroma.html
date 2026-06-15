@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Chroma Mix</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--good:#3ddc97}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:14px;text-align:center;max-width:340px}
+  .compare{display:flex;gap:26px;align-items:center;margin-bottom:18px}
+  .swatch{width:96px;height:96px;border-radius:20px;border:3px solid #ffffff22;box-shadow:0 8px 30px #0008}
+  .lbl{text-align:center;color:var(--muted);font-size:12px;margin-top:6px;font-weight:600}
+  .arrow{font-size:26px;color:var(--muted)}
+  .pads{display:flex;gap:14px;margin-bottom:8px}
+  .pad{width:74px;height:74px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;color:#0008;box-shadow:0 4px 14px #0006;transition:transform .1s}
+  .pad:active{transform:scale(.92)}
+  .meta{color:var(--muted);font-size:12px;margin:4px 0 12px;height:16px}
+  .row{display:flex;gap:10px;margin-top:6px}
+  .btn{background:var(--acc);color:#fff;border:none;padding:11px 20px;border-radius:12px;font-weight:700;font-size:15px}
+  .btn.ghost{background:#ffffff12;color:var(--txt)}
+  .hud{display:flex;gap:12px;margin-bottom:12px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  .msg{margin-top:12px;font-weight:700;height:22px}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>🎨 Chroma Mix</h1>
+<div class="sub">Renkleri ekleyerek hedef tonu yakala. Yüzde 92+ benzerlikte level geçilir. Renk teorisi sezgisi!</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Eşleşme</small><span id="match">0%</span></div>
+</div>
+<div class="compare">
+  <div><div class="swatch" id="target"></div><div class="lbl">HEDEF</div></div>
+  <div class="arrow">→</div>
+  <div><div class="swatch" id="mix"></div><div class="lbl">SENİN</div></div>
+</div>
+<div class="pads" id="pads"></div>
+<div class="meta" id="meta">Damla ekledikçe karışım değişir</div>
+<div class="row">
+  <button class="btn ghost" onclick="reset()">↺ Sıfırla</button>
+  <button class="btn" onclick="check()">Kontrol Et</button>
+</div>
+<div class="msg" id="msg"></div>
+<script>
+const BASE=[[235,64,52],[52,168,235],[247,208,44],[120,60,200],[40,200,120]]; // r g b sources
+let level=1,target=[0,0,0],drops=[0,0,0,0,0],sources=[];
+function rnd(a,b){return a+Math.random()*(b-a)}
+function buildLevel(){
+  // pick number of sources based on level
+  const n=Math.min(2+Math.floor(level/2),5);
+  sources=BASE.slice(0,n);
+  // random target = weighted mix of sources
+  const w=sources.map(()=>Math.random()*4|0+0);
+  let any=w.some(x=>x>0); if(!any) w[0]=2;
+  target=mixOf(w);drops=sources.map(()=>0);
+  renderPads();render();document.getElementById('msg').textContent='';
+  document.getElementById('lvl').textContent=level;
+}
+function mixOf(w){
+  let tot=w.reduce((a,b)=>a+b,0);if(tot===0)return [245,245,245];
+  let r=0,g=0,b=0;
+  w.forEach((q,i)=>{r+=sources[i][0]*q;g+=sources[i][1]*q;b+=sources[i][2]*q;});
+  // start from white canvas blended toward pigment average (subtractive-ish feel)
+  return [Math.round(r/tot),Math.round(g/tot),Math.round(b/tot)];
+}
+function renderPads(){
+  const p=document.getElementById('pads');p.innerHTML='';
+  sources.forEach((c,i)=>{
+    const d=document.createElement('div');d.className='pad';
+    d.style.background=`rgb(${c[0]},${c[1]},${c[2]})`;d.textContent='+';
+    d.onclick=()=>{drops[i]++;render();};
+    p.appendChild(d);
+  });
+}
+function render(){
+  document.getElementById('target').style.background=`rgb(${target[0]},${target[1]},${target[2]})`;
+  const m=mixOf(drops);
+  document.getElementById('mix').style.background=`rgb(${m[0]},${m[1]},${m[2]})`;
+  const sim=similarity(m,target);
+  document.getElementById('match').textContent=sim+'%';
+  document.getElementById('meta').textContent=drops.map((d,i)=>d>0?`#${i+1}×${d}`:'').filter(Boolean).join('  ')||'Damla ekle';
+}
+function similarity(a,b){
+  const d=Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2);
+  return Math.max(0,Math.round(100-d/4.41));
+}
+function reset(){drops=sources.map(()=>0);render();}
+function check(){
+  const m=mixOf(drops);const sim=similarity(m,target);const msg=document.getElementById('msg');
+  if(sim>=92){msg.textContent='✅ Mükemmel ton!';msg.style.color='var(--good)';
+    level++;setTimeout(buildLevel,1100);}
+  else{msg.textContent=`🤏 %${sim} — biraz daha ayarla`;msg.style.color='var(--muted)';}
+}
+buildLevel();
+</script>
+</body></html>

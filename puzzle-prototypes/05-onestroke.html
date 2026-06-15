@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>One Stroke</title>
+<style>
+  :root{--bg:#0b0f1a;--card:#161f38;--txt:#e8eefc;--muted:#8a98bd;--acc:#5b8cff;--good:#3ddc97}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,#16213e,var(--bg) 60%);color:var(--txt);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:9}
+  h1{font-size:22px;margin:6px 0 2px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center;max-width:340px}
+  .hud{display:flex;gap:12px;margin-bottom:10px}
+  .stat{background:var(--card);border:1px solid #ffffff14;border-radius:12px;padding:7px 13px;font-weight:700;font-size:14px}
+  .stat small{color:var(--muted);font-weight:600;font-size:11px;display:block}
+  canvas{background:#0f1730;border-radius:18px;border:1px solid #ffffff10;touch-action:none}
+  .msg{margin-top:12px;font-weight:700;height:22px}
+  .btn{margin-top:8px;background:#ffffff12;color:var(--txt);border:none;padding:10px 18px;border-radius:12px;font-weight:700}
+</style></head><body>
+<a class="back" href="index.html">← Geri</a>
+<h1>✏️ One Stroke</h1>
+<div class="sub">Parmağını kaldırmadan tüm gri kenarlardan bir kez geç. Bir noktadan başla, hepsini çiz.</div>
+<div class="hud">
+  <div class="stat"><small>Level</small><span id="lvl">1</span></div>
+  <div class="stat"><small>Kenar</small><span id="prog">0/0</span></div>
+</div>
+<canvas id="cv" width="320" height="320"></canvas>
+<div class="msg" id="msg"></div>
+<button class="btn" onclick="reset()">↺ Tekrar Çiz</button>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let pts=[],edges=[],done=[],cur=-1,level=1;
+const LV=[
+ {p:[[1,0],[0,1],[1,1],[2,1],[1,2]],e:[[0,1],[0,2],[0,3],[1,2],[2,3],[1,4],[3,4]]},
+ {p:[[0,0],[2,0],[1,1],[0,2],[2,2]],e:[[0,1],[0,2],[1,2],[2,3],[2,4],[3,4],[0,3],[1,4]]},
+ {p:[[1,0],[0,1],[2,1],[1,2],[1,1]],e:[[0,1],[0,2],[1,4],[2,4],[3,4],[0,4]]},
+];
+function S(v){return 50+v*110;}
+function build(){
+  const L=LV[(level-1)%LV.length];
+  pts=L.p.map(([x,y])=>({x:S(x),y:S(y)}));edges=L.e.map(e=>[...e]);done=edges.map(()=>false);cur=-1;
+  document.getElementById('lvl').textContent=level;document.getElementById('msg').textContent='';
+  draw();
+}
+function draw(){
+  ctx.clearRect(0,0,320,320);
+  edges.forEach((e,i)=>{ctx.beginPath();ctx.moveTo(pts[e[0]].x,pts[e[0]].y);ctx.lineTo(pts[e[1]].x,pts[e[1]].y);
+    ctx.lineWidth=8;ctx.lineCap='round';ctx.strokeStyle=done[i]?'#5b8cff':'#2a3556';ctx.stroke();});
+  pts.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,11,0,6.3);
+    ctx.fillStyle=i===cur?'#22d3ee':'#8a98bd';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();});
+  const d=done.filter(Boolean).length;document.getElementById('prog').textContent=d+'/'+edges.length;
+  if(d===edges.length){document.getElementById('msg').textContent='✅ Tek çizgide bitti!';
+    document.getElementById('msg').style.color='var(--good)';if(!window._w){window._w=1;setTimeout(()=>{level++;window._w=0;build();},1100);}}
+}
+function near(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;
+  const x=t.clientX-r.left,y=t.clientY-r.top;return pts.findIndex(p=>Math.hypot(p.x-x,p.y-y)<26);}
+function start(e){const i=near(e);if(i>=0){cur=i;draw();}}
+function moveTo(e){if(cur<0)return;e.preventDefault();const i=near(e);
+  if(i>=0&&i!==cur){const ei=edges.findIndex(ed=>!done[edges.indexOf(ed)]&&((ed[0]===cur&&ed[1]===i)||(ed[1]===cur&&ed[0]===i))&&!done[edges.indexOf(ed)]);
+    // find an undone edge between cur and i
+    let idx=-1;for(let k=0;k<edges.length;k++){if(!done[k]&&((edges[k][0]===cur&&edges[k][1]===i)||(edges[k][1]===cur&&edges[k][0]===i))){idx=k;break;}}
+    if(idx>=0){done[idx]=true;cur=i;draw();}}}
+function end(){cur=-1;draw();}
+function reset(){done=edges.map(()=>false);cur=-1;draw();}
+cv.addEventListener('mousedown',start);cv.addEventListener('mousemove',moveTo);window.addEventListener('mouseup',end);
+cv.addEventListener('touchstart',start,{passive:false});cv.addEventListener('touchmove',moveTo,{passive:false});cv.addEventListener('touchend',end);
+build();
+</script>
+</body></html>
