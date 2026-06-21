@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>PULSE — Resonance</title>
+<style>
+  :root{
+    --bg:#070a14; --bg2:#0d1326; --txt:#eaf0ff; --muted:#7e8cb5; --acc:#5b8cff;
+    --gold:#ffd166; --good:#3ddc97; --bad:#ff5d73; --hot:#ff8a3d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1000px 700px at 50% -5%,#15203f,var(--bg) 60%);color:var(--txt);
+    min-height:100%;display:flex;flex-direction:column;align-items:center;
+    padding:max(10px,env(safe-area-inset-top)) 12px 14px;overflow:hidden}
+  a.back{position:fixed;top:12px;left:14px;color:var(--muted);text-decoration:none;font-size:14px;z-index:30}
+  .top{width:100%;max-width:440px;display:flex;justify-content:space-between;align-items:flex-end;margin:2px 0 8px}
+  .brand{font-size:20px;font-weight:900;letter-spacing:4px}
+  .brand b{color:var(--acc)}
+  .lvlbadge{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:1px}
+  .hud{width:100%;max-width:440px;display:flex;gap:8px;margin-bottom:8px}
+  .stat{flex:1;background:#ffffff0a;border:1px solid #ffffff12;border-radius:13px;padding:8px 6px;text-align:center}
+  .stat small{display:block;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+  .stat span{font-size:19px;font-weight:900}
+  .hearts{font-size:15px;letter-spacing:1px}
+  .scoreflash{transition:transform .12s}
+  .canvasWrap{position:relative;width:100%;max-width:440px}
+  canvas{width:100%;display:block;border-radius:20px;background:#0a1024;
+    border:1px solid #ffffff10;touch-action:manipulation;box-shadow:0 20px 60px #0006}
+  .goalbar{width:100%;max-width:440px;display:flex;align-items:center;gap:10px;margin:10px 0 4px}
+  .goalbar .lab{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
+  .track{flex:1;height:9px;background:#ffffff12;border-radius:9px;overflow:hidden}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--good));transition:width .35s ease}
+  .footer{width:100%;max-width:440px;text-align:center;color:var(--muted);font-size:12px;margin-top:8px;line-height:1.5;min-height:34px}
+  /* combo popup */
+  .pop{position:absolute;pointer-events:none;font-weight:900;font-size:30px;
+    text-shadow:0 2px 14px #000;animation:pop .8s ease forwards;z-index:20}
+  @keyframes pop{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}
+    20%{transform:translate(-50%,-60%) scale(1.15);opacity:1}
+    100%{transform:translate(-50%,-130%) scale(1);opacity:0}}
+  /* overlay */
+  .overlay{position:fixed;inset:0;background:#05070feb;backdrop-filter:blur(6px);
+    display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50;padding:24px;text-align:center}
+  .overlay.show{display:flex}
+  .card{background:linear-gradient(160deg,#16203f,#0c1226);border:1px solid #ffffff18;border-radius:24px;
+    padding:28px 24px;max-width:340px;width:100%;box-shadow:0 30px 80px #000a}
+  .card h2{font-size:26px;font-weight:900;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:18px}
+  .big{font-size:46px;margin-bottom:6px}
+  .btn{display:block;width:100%;border:none;border-radius:15px;padding:15px;font-size:16px;font-weight:800;
+    margin-top:10px;cursor:pointer;color:#fff}
+  .btn.primary{background:linear-gradient(120deg,var(--acc),#7a5bff)}
+  .btn.reward{background:linear-gradient(120deg,#ff9b3d,#ff5d73);position:relative}
+  .btn.ghost{background:#ffffff12}
+  .btn.reward small{display:block;font-weight:600;font-size:11px;opacity:.9;letter-spacing:.5px}
+  .adtag{position:absolute;top:8px;right:10px;font-size:9px;background:#0006;padding:2px 6px;border-radius:5px;letter-spacing:1px}
+  .rules{text-align:left;background:#ffffff08;border-radius:14px;padding:14px 16px;margin-bottom:6px;font-size:13px;line-height:1.6;color:#cdd6f5}
+  .rules b{color:var(--gold)}
+  @media (max-height:680px){.brand{font-size:17px}.stat span{font-size:17px}}
+</style></head>
+<body>
+<a class="back" href="index.html">←</a>
+<div class="top">
+  <div class="brand">PU<b>L</b>SE</div>
+  <div class="lvlbadge">REZONANS · LV <span id="lvlNum">1</span></div>
+</div>
+
+<div class="hud">
+  <div class="stat"><small>Skor</small><span id="score" class="scoreflash">0</span></div>
+  <div class="stat"><small>Kombo</small><span id="combo">×1</span></div>
+  <div class="stat"><small>Hamle</small><span id="moves">0</span></div>
+  <div class="stat"><small>Can</small><span class="hearts" id="hearts">❤️❤️❤️</span></div>
+</div>
+
+<div class="canvasWrap" id="wrap">
+  <canvas id="cv"></canvas>
+</div>
+
+<div class="goalbar">
+  <div class="lab">🎯 Hedef</div>
+  <div class="track"><div class="fill" id="fill"></div></div>
+  <div class="lab"><span id="goalTxt">0/0</span></div>
+</div>
+
+<div class="footer" id="footer">Bir hücreye dokun. Doldukça <b>patlar</b> ve zincir başlatır.</div>
+
+<!-- WIN / LOSE / START OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+//==================== AUDIO (tiny WebAudio) ====================
+let actx=null;
+function beep(freq,dur=0.08,type='triangle',gain=0.06){
+  try{ if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type=type;o.frequency.value=freq;g.gain.value=gain;
+    o.connect(g);g.connect(actx.destination);o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur);
+    o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+function vibe(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
+
+//==================== STATE ====================
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let N,cap,counts,targets,cleared,total;
+let level=1, lives=3, score=0, moves=0, movesLeft=0, busy=false;
+let particles=[], shake=0, scaleAnim;
+let DPR=Math.min(window.devicePixelRatio||1,2);
+let CELL, PAD=0, ORIGIN=0;
+
+const C = {
+  empty:'#101a35',
+  acc:'#5b8cff',
+  pip:['#3a4a7a','#5b8cff','#22d3ee','#3ddc97','#ffd166'],
+};
+
+function neighbors(r,c){const out=[];if(r>0)out.push([r-1,c]);if(r<N-1)out.push([r+1,c]);
+  if(c>0)out.push([r,c-1]);if(c<N-1)out.push([r,c+1]);return out;}
+function capacity(r,c){return neighbors(r,c).length;} // classic critical-mass capacity
+
+//==================== LEVEL GEN ====================
+function genLevel(){
+  N = Math.min(4 + Math.floor((level-1)/4), 7);          // grow 4→7
+  counts = Array.from({length:N},()=>Array(N).fill(0));
+  targets = Array.from({length:N},()=>Array(N).fill(false));
+  cleared = Array.from({length:N},()=>Array(N).fill(false));
+  // number of resonance targets scales up
+  total = Math.min(2 + Math.floor(level/2), N*N-2);
+  let placed=0, guard=0;
+  while(placed<total && guard++<400){
+    const r=Math.random()*N|0, c=Math.random()*N|0;
+    if(!targets[r][c]){targets[r][c]=true;placed++;}
+  }
+  // seed some pre-charged cells so chains are reachable & puzzly
+  const seeds = Math.min(2+Math.floor(level/3), N*N-total);
+  let s=0,g2=0;
+  while(s<seeds && g2++<400){
+    const r=Math.random()*N|0,c=Math.random()*N|0;
+    if(counts[r][c]===0){counts[r][c]=1+(Math.random()* (capacity(r,c)-1) |0);s++;}
+  }
+  // move budget: generous early, tighter later
+  movesLeft = Math.max(total + 2, Math.ceil(total*1.8) - Math.floor(level/3));
+  moves = movesLeft;
+  layout();
+  render();
+  updateHUD();
+  document.getElementById('lvlNum').textContent=level;
+  document.getElementById('footer').innerHTML =
+    'Altın <b>◎ hedefleri</b> patlat. Zincir uzadıkça kombo katlanır!';
+}
+
+//==================== LAYOUT / SIZE ====================
+function layout(){
+  const wrap=document.getElementById('wrap');
+  const w=Math.min(wrap.clientWidth, 440);
+  cv.style.width=w+'px';
+  const size=w;
+  cv.width=size*DPR; cv.height=size*DPR;
+  cv.style.height=size+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  PAD = size*0.05;
+  CELL = (size - PAD*2) / N;
+  ORIGIN = PAD;
+  cv.dispSize=size;
+}
+window.addEventListener('resize',()=>{layout();render();});
+
+function cellCenter(r,c){return [ORIGIN + c*CELL + CELL/2, ORIGIN + r*CELL + CELL/2];}
+
+//==================== RENDER ====================
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+function render(){
+  const t=performance.now()/1000;
+  const sx=(Math.random()*2-1)*shake, sy=(Math.random()*2-1)*shake;
+  ctx.save();
+  ctx.clearRect(0,0,cv.dispSize,cv.dispSize);
+  ctx.translate(sx,sy);
+
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    const x=ORIGIN+c*CELL+CELL*0.06, y=ORIGIN+r*CELL+CELL*0.06, s=CELL*0.88;
+    const n=counts[r][c], capn=capacity(r,c);
+    const isTarget=targets[r][c], isCleared=cleared[r][c];
+    // base tile
+    let fill=C.empty;
+    if(n>0) fill=shade(C.pip[Math.min(n,4)], -0.0);
+    // instability telegraph: near capacity -> hot pulse
+    const near = n>0 && n>=capn; // (will burst) — shouldn't persist, but guard
+    roundRect(x,y,s,s,s*0.22);
+    ctx.fillStyle=fill;ctx.fill();
+    // inner sheen
+    if(n>0){
+      ctx.save();roundRect(x,y,s,s,s*0.22);ctx.clip();
+      const g=ctx.createLinearGradient(x,y,x,y+s);
+      g.addColorStop(0,'#ffffff22');g.addColorStop(.5,'#ffffff00');
+      ctx.fillStyle=g;ctx.fillRect(x,y,s,s);ctx.restore();
+    }
+    // glow if one away from bursting
+    if(n>0 && n===capn-1){
+      ctx.save();ctx.shadowColor=C.hot;ctx.shadowBlur=14+6*Math.sin(t*8);
+      roundRect(x,y,s,s,s*0.22);ctx.strokeStyle=C.hot;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+    }
+    // pips
+    drawPips(x+s/2,y+s/2,s,n,capn);
+    // target ring
+    if(isTarget){
+      const [cx,cy]=cellCenter(r,c);
+      ctx.beginPath();ctx.arc(cx,cy,s*0.46,0,6.283);
+      if(isCleared){
+        ctx.strokeStyle=C.good;ctx.lineWidth=3;ctx.shadowColor=C.good;ctx.shadowBlur=12;ctx.stroke();ctx.shadowBlur=0;
+        ctx.fillStyle=C.good;ctx.font=`900 ${s*0.4}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('✓',cx,cy+s*0.02);
+      }else{
+        ctx.setLineDash([s*0.13,s*0.1]);ctx.lineWidth=3;
+        ctx.strokeStyle=C.gold;ctx.shadowColor=C.gold;ctx.shadowBlur=8+4*Math.sin(t*4+r+c);
+        ctx.stroke();ctx.setLineDash([]);ctx.shadowBlur=0;
+      }
+    }
+  }
+  // particles
+  particles.forEach(p=>{
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fillStyle=p.col;ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+function drawPips(cx,cy,s,n,capn){
+  if(n<=0)return;
+  ctx.fillStyle='#fff';
+  const R=s*0.13, off=s*0.2;
+  const pos=[[0,0]];
+  if(n===2)pos.splice(0,1,[-off,0],[off,0]);
+  else if(n===3)pos.splice(0,1,[0,-off],[-off,off*0.8],[off,off*0.8]);
+  else if(n>=4)pos.splice(0,1,[-off,-off],[off,-off],[-off,off],[off,off]);
+  for(let i=0;i<Math.min(n,4);i++){
+    ctx.beginPath();ctx.arc(cx+pos[i][0],cy+pos[i][1],R,0,6.283);
+    ctx.fillStyle='#ffffff';ctx.shadowColor=C.pip[Math.min(n,4)];ctx.shadowBlur=6;ctx.fill();ctx.shadowBlur=0;
+  }
+}
+function shade(hex,amt){return hex;}
+
+//==================== INPUT ====================
+cv.addEventListener('click',e=>{
+  if(busy) return;
+  const r=cv.getBoundingClientRect();
+  const x=(e.clientX-r.left), y=(e.clientY-r.top);
+  const c=Math.floor((x-ORIGIN)/CELL), row=Math.floor((y-ORIGIN)/CELL);
+  if(row<0||row>=N||c<0||c>=N)return;
+  tap(row,c);
+});
+
+function tap(r,c){
+  if(movesLeft<=0)return;
+  movesLeft--; moves=movesLeft;
+  counts[r][c]++;
+  beep(220,0.05,'square',0.05); vibe(8);
+  updateHUD();
+  resolve(r,c);
+}
+
+//==================== CHAIN RESOLUTION (cascading) ====================
+function resolve(sr,sc){
+  busy=true;
+  let comboCount=0;
+  // find initial unstable
+  let frontier=[];
+  if(counts[sr][sc]>=capacity(sr,sc)) frontier.push([sr,sc]);
+
+  const stepDelay=85;
+  function step(){
+    // collect all currently-unstable cells (process in waves for visible cascade)
+    let wave=[];
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++)
+      if(counts[r][c]>=capacity(r,c)) wave.push([r,c]);
+    if(wave.length===0){ endChain(comboCount); return; }
+
+    comboCount++;
+    const mult = comboCount; // combo multiplier grows per wave
+    document.getElementById('combo').textContent='×'+mult;
+    flashScale(document.getElementById('combo'));
+
+    // snapshot then apply simultaneously
+    const add = Array.from({length:N},()=>Array(N).fill(0));
+    wave.forEach(([r,c])=>{
+      const capn=capacity(r,c);
+      counts[r][c]-=capn;
+      // burst fx
+      burstFx(r,c, comboCount);
+      // target clear
+      if(targets[r][c] && !cleared[r][c]){
+        cleared[r][c]=true;
+        score += 100*mult;
+        beep(520+mult*60,0.12,'triangle',0.08);
+        popup(r,c,'+'+(100*mult),C.gold);
+      }else{
+        score += 10*mult;
+      }
+      neighbors(r,c).forEach(([nr,nc])=>add[nr][nc]++);
+    });
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++) counts[r][c]+=add[r][c];
+
+    shake=Math.min(2+comboCount*1.4,10);
+    beep(160+comboCount*40,0.07,'sawtooth',0.05); vibe(14);
+    if(comboCount>=2) document.getElementById('footer').innerHTML=
+      `🔥 <b>${comboCount}× ZİNCİR!</b> Devam ediyor...`;
+
+    updateHUD();
+    setTimeout(step, stepDelay);
+  }
+  setTimeout(step, 60);
+}
+
+function endChain(comboCount){
+  document.getElementById('combo').textContent='×1';
+  busy=false;
+  updateHUD();
+  if(comboCount>=3){ popupCenter(comboCount+'× COMBO!'); beep(880,0.18,'triangle',0.09); }
+  // check win
+  if(clearedCount()>=total){ setTimeout(win, 350); return; }
+  // check fail (no moves & targets remain)
+  if(movesLeft<=0){ setTimeout(loseLife, 350); }
+  else document.getElementById('footer').innerHTML='Sıradaki hedefi avla.';
+}
+
+function clearedCount(){let n=0;for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(cleared[r][c])n++;return n;}
+
+//==================== FX ====================
+function burstFx(r,c,combo){
+  const [cx,cy]=cellCenter(r,c);
+  const col=[C.acc,'#5b8cff','#22d3ee','#3ddc97','#ffd166'][Math.min(combo,4)];
+  for(let i=0;i<10;i++){
+    const a=Math.random()*6.283, sp=1.5+Math.random()*3.5;
+    particles.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      r:2+Math.random()*3,life:1,col:col});
+  }
+}
+function popup(r,c,txt,col){
+  const [cx,cy]=cellCenter(r,c);
+  spawnPop(cx/cv.dispSize, cy/cv.dispSize, txt, col, 22);
+}
+function popupCenter(txt){ spawnPop(0.5,0.45,txt,'#fff',34); }
+function spawnPop(fx,fy,txt,col,size){
+  const wrap=document.getElementById('wrap');
+  const el=document.createElement('div');el.className='pop';el.textContent=txt;
+  el.style.left=(fx*100)+'%';el.style.top=(fy*100)+'%';
+  el.style.color=col;el.style.fontSize=size+'px';
+  wrap.appendChild(el);setTimeout(()=>el.remove(),800);
+}
+function flashScale(el){el.style.transform='scale(1.35)';setTimeout(()=>el.style.transform='scale(1)',120);}
+
+//==================== ANIM LOOP ====================
+function loop(){
+  // particles
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.12;p.vx*=0.96;p.life-=0.04;p.r*=0.98;
+    if(p.life<=0)particles.splice(i,1);}
+  shake*=0.82; if(shake<0.1)shake=0;
+  render();
+  requestAnimationFrame(loop);
+}
+
+//==================== HUD ====================
+function updateHUD(){
+  const sEl=document.getElementById('score');
+  sEl.textContent=score; flashScale(sEl);
+  document.getElementById('moves').textContent=movesLeft;
+  document.getElementById('hearts').textContent='❤️'.repeat(lives)+'🖤'.repeat(Math.max(0,3-lives));
+  const cc=clearedCount();
+  document.getElementById('goalTxt').textContent=cc+'/'+total;
+  document.getElementById('fill').style.width=(total?cc/total*100:0)+'%';
+}
+
+//==================== WIN / LOSE ====================
+function win(){
+  beep(660,0.12);setTimeout(()=>beep(880,0.16),120);setTimeout(()=>beep(1100,0.2),260);
+  score += movesLeft*25; // bonus for spare moves
+  showOverlay(`
+    <div class="big">🎉</div>
+    <h2>Level ${level} Tamam!</h2>
+    <p>Kalan hamle bonusu dahil<br><b style="color:var(--gold);font-size:18px">${score} puan</b></p>
+    <button class="btn primary" id="next">Sonraki Level →</button>
+  `);
+  document.getElementById('next').onclick=()=>{level++;hideOverlay();genLevel();};
+}
+function loseLife(){
+  lives--; updateHUD(); vibe([20,40,20]);
+  if(lives>0){
+    showOverlay(`
+      <div class="big">💔</div>
+      <h2>Hamleler bitti</h2>
+      <p>Hedefler tamamlanamadı. ${lives} canın kaldı.</p>
+      <button class="btn primary" id="retry">Tekrar Dene</button>
+    `);
+    document.getElementById('retry').onclick=()=>{hideOverlay();genLevel();};
+  }else{
+    showOverlay(`
+      <div class="big">☠️</div>
+      <h2>Canların bitti</h2>
+      <p>Devam etmek için kısa bir ödüllü reklam izle, <b>+3 can</b> kazan — ya da baştan başla.</p>
+      <button class="btn reward" id="ad"><span class="adtag">REKLAM</span>📺 İzle &amp; Devam Et<small>+3 can kazan</small></button>
+      <button class="btn ghost" id="restart">Baştan Başla</button>
+    `);
+    document.getElementById('ad').onclick=()=>{ // simulate rewarded ad
+      const b=document.getElementById('ad');b.innerHTML='⏳ Reklam yükleniyor...';b.disabled=true;
+      setTimeout(()=>{lives=3;hideOverlay();updateHUD();genLevel();},1400);
+    };
+    document.getElementById('restart').onclick=()=>{level=1;lives=3;score=0;hideOverlay();genLevel();};
+  }
+}
+function showOverlay(html){document.getElementById('card').innerHTML=html;
+  document.getElementById('overlay').classList.add('show');}
+function hideOverlay(){document.getElementById('overlay').classList.remove('show');}
+
+//==================== START ====================
+function start(){
+  layout();
+  showOverlay(`
+    <div class="big">🌋</div>
+    <h2>PULSE</h2>
+    <div class="rules">
+      • Hücreye dokun → <b>dolar</b>. Komşu sayısı kadar dolunca <b>patlar</b>.<br>
+      • Patlayan hücre komşularına enerji yollar → <b>zincirleme reaksiyon</b>.<br>
+      • Altın <b>◎ hedefleri</b> patlatınca temizlenir. Hepsini temizle!<br>
+      • Zincir uzadıkça <b>kombo ×</b> büyür, puan katlanır.<br>
+      • Hamlen sınırlı. Bitmeden hedefleri bitir.
+    </div>
+    <button class="btn primary" id="play">▶ Oyna</button>
+  `);
+  document.getElementById('play').onclick=()=>{
+    if(!actx){try{actx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+    hideOverlay();genLevel();
+  };
+  loop();
+}
+start();
+</script>
+</body></html>
